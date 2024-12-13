@@ -14,7 +14,10 @@ const exerciseSchema = new mongoose.Schema({
   username: String,
   description: String,
   duration: Number,
-  date: String,
+  date: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 const logSchema = new mongoose.Schema({
@@ -24,7 +27,10 @@ const logSchema = new mongoose.Schema({
     {
       description: String,
       duration: Number,
-      date: Date,
+      date: {
+        type: Date,
+        default: Date.now,
+      },
     },
   ],
 });
@@ -55,4 +61,9 @@ app.post("/api/users", async (req, res) => {
     username: result._doc.username,
     _id: result._doc._id,
   });
+});
+
+app.get("/api/users", async (req, res) => {
+  const users = await User.find().exec();
+  res.status(200).json(users);
 });
