@@ -4,25 +4,10 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 
-mongoose.connect(process.env.MONGO_URI);
+await mongoose.connect(process.env.MONGO_URI);
 
 const userSchema = new mongoose.Schema({
   username: String,
-});
-
-const exerciseSchema = new mongoose.Schema({
-  username: String,
-  description: String,
-  duration: Number,
-  date: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-const logSchema = new mongoose.Schema({
-  username: String,
-  count: Number,
   log: [
     {
       description: String,
@@ -36,8 +21,6 @@ const logSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model("User", userSchema);
-const Exercise = mongoose.model("Exercise", exerciseSchema);
-const Log = mongoose.model("Log", logSchema);
 
 const app = express();
 app.use(cors());
@@ -65,17 +48,38 @@ app.post("/api/users", async (req, res) => {
 
 app.get("/api/users", async (_, res) => {
   const users = await User.find().exec();
-  res.status(200).json(users);
+  res.status(200).json(
+    users.map((user) => ({
+      username: user.username,
+      _id: user._id,
+    }))
+  );
 });
 
 app.post("/api/users/:_id/exercises", async (req, res) => {
   const user = await User.findById(req.params.id).exec();
-  const exercise = new Exercise({
-    username: user.username,
-    description: req.body.description,
-    duration: req.body.duration,
-    date: req.body.date,
+  user.log = [
+    ...user.log,
+    {
+      description: req.body.description,
+      duration: req.body.duration,
+      date: req.body.date ? new Date(req.body.date) : undefined,
+    },
+  ];
+  const result = await user.save();
+  const updatedUser = result._doc;
+  const logLength = updatedUser.log.length;
+  const addedLog = updatedUser.log[logLength - 1];
+  res.status(201).json({
+    username: updatedUser.username,
+    description: addedLog.description,
+    duration: addedLog.duration,
+    date: addedLog.date.toDateString(),
+    _id: updatedUser._id,
   });
-  const result = await exercise.save();
-  res.status(201).json(exercise);
+});
+
+app.get("/api/users/:_id/logs", async (req, res) => {
+  const user = User.findById(req.params.id).exec();
+  res.json(user.log);
 });
