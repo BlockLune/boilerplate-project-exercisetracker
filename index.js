@@ -63,7 +63,19 @@ app.post("/api/users", async (req, res) => {
   });
 });
 
-app.get("/api/users", async (req, res) => {
+app.get("/api/users", async (_, res) => {
   const users = await User.find().exec();
   res.status(200).json(users);
+});
+
+app.post("/api/users/:_id/exercises", async (req, res) => {
+  const user = await User.findById(req.params.id).exec();
+  const exercise = new Exercise({
+    username: user.username,
+    description: req.body.description,
+    duration: req.body.duration,
+    date: req.body.date,
+  });
+  const result = await exercise.save();
+  res.status(201).json(exercise);
 });
