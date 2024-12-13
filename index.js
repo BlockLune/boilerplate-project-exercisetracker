@@ -1,18 +1,58 @@
-import express from "express";
-import cors from "cors";
 import "dotenv/config";
+import bodyParser from "body-parser";
+import cors from "cors";
+import express from "express";
+import mongoose from "mongoose";
+
+mongoose.connect(process.env.MONGO_URI);
+
+const userSchema = new mongoose.Schema({
+  username: String,
+});
+
+const exerciseSchema = new mongoose.Schema({
+  username: String,
+  description: String,
+  duration: Number,
+  date: String,
+});
+
+const logSchema = new mongoose.Schema({
+  username: String,
+  count: Number,
+  log: [
+    {
+      description: String,
+      duration: Number,
+      date: Date,
+    },
+  ],
+});
+
+const User = mongoose.model("User", userSchema);
+const Exercise = mongoose.model("Exercise", exerciseSchema);
+const Log = mongoose.model("Log", logSchema);
 
 const app = express();
-
 app.use(cors());
 app.use(express.static("public"));
+app.use(bodyParser.urlencoded({ extended: false }));
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log("Your app is listening on port " + listener.address().port);
 });
 
-app.get("/", (req, res) => {
+app.get("/", (_, res) => {
   res.sendFile(import.meta.dirname + "/views/index.html");
 });
 
-app.post("/api/users");
+app.post("/api/users", async (req, res) => {
+  const user = new User({
+    username: req.body.username,
+  });
+  const result = await user.save();
+  res.status(201).json({
+    username: result._doc.username,
+    _id: result._doc._id,
+  });
+});
